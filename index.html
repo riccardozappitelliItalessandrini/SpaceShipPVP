@@ -269,8 +269,11 @@ function draw() {
     ctx.fill();
   });
 
-  ctx.fillStyle = "white";
   bullets.forEach(b => {
+    // le piace l'operatore ternario?
+    ctx.fillStyle = b.owner == player1 ? "red" : "blue";
+    // bene perché a me nemmeno
+
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
     ctx.fill();
