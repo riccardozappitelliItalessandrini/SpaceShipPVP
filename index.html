@@ -17,12 +17,26 @@ red_ship_image.src = "assets/sprites/red.png";
 const blue_ship_image = new Image();
 blue_ship_image.src = "assets/sprites/blue.png";
 
+const bomb_image = new Image();
+bomb_image.src = "assets/sprites/bomb.png"
+
+const cure_image = new Image();
+cure_image.src = "assets/sprites/cure.png"
+
+const faster_bullet_image = new Image();
+faster_bullet_image.src = "assets/sprites/faster_bullet.png"
+
+const background_image = new Image();
+background_image.src = "assets/sprites/space.jpeg";
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas()
+
 let gameOver = false;
 let winnerText = "";
-
-canvas.width = 1000;
-canvas.height = 600;
-
 const midLine = canvas.width / 2;
 
 let keys = {};
@@ -30,6 +44,10 @@ let bullets = [];
 let powers = [];
 
 let lastPowerSpawn = 0;
+
+window.addEventListener("resize", resizeCanvas);
+document.addEventListener("fullscreenchange", resizeCanvas);
+//controllo se la finestra viene ridimensionata o messa in fullscreen
 
 // Input handling
 window.addEventListener("keydown", e => {
@@ -76,12 +94,12 @@ function shoot(player, direction) {
 }
 
 class Power {
-  constructor(x, y, type, color) {
+  constructor(x, y, type, image) {
     this.x = x;
     this.y = y;
-    this.radius = 10;
+    this.radius = 20; // slightly bigger for sprites
     this.type = type;
-    this.color = color;
+    this.image = image;
   }
 
   apply(player) {
@@ -121,14 +139,46 @@ function spawnPower() {
   let power;
 
   if (rand < 0.33) {
-    power = new Power(x, y, "heal", "lime");
+    power = new Power(x, y, "heal", cure_image);
   } else if (rand < 0.66) {
-    power = new Power(x, y, "damage", "red");
+    power = new Power(x, y, "damage", bomb_image);
   } else {
-    power = new Power(x, y, "speed", "blue");
+    power = new Power(x, y, "speed", faster_bullet_image);
   }
 
   powers.push(power);
+}
+
+function drawLegend() {
+  const padding = 40;
+  const iconSize = 40; // dimensione immagine
+  const startX = canvas.width / 2 - (iconSize * 3 + padding * 2) / 2; // centrata
+  const y = 10; // distanza dal top
+
+  const legend = [
+    { image: cure_image, text: "+20 HP" },
+    { image: bomb_image, text: "-20 HP" },
+    { image: faster_bullet_image, text: "Faster Bullets" }
+  ];
+
+  //rettangolo trasparente dietro
+  const rectWidth = iconSize * 3 + padding * 2;
+  const rectHeight = iconSize + 24;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillRect(startX - 5, y - 5, rectWidth + iconSize, rectHeight + iconSize);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top"; // testo sotto l’icona
+  ctx.fillStyle = "white";
+  ctx.font = "16px Arial"; // niente comic sans pekke fa schif
+
+  legend.forEach((item, i) => {
+    const x = startX + i * (iconSize + padding);
+    if (item.image.complete) {
+      ctx.drawImage(item.image, x, y, iconSize, iconSize);
+    }
+    ctx.fillText(item.text, x + iconSize / 2, y + iconSize + 4);
+  });
 }
 
 function resetGame() {
@@ -251,8 +301,18 @@ function constrainPlayer2() {
 }
 
 function draw() {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (background_image.complete) {
+    ctx.drawImage(
+      background_image,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  } else {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
   ctx.strokeStyle = "white";
   ctx.lineWidth = 4;
@@ -263,10 +323,17 @@ function draw() {
 
   // draw powers
   powers.forEach(p => {
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fill();
+    const size = p.radius * 2;
+
+    if (p.image && p.image.complete) {
+      ctx.drawImage(
+        p.image,
+        p.x - p.radius,
+        p.y - p.radius,
+        size,
+        size
+      );
+    }
   });
 
   bullets.forEach(b => {
@@ -280,6 +347,7 @@ function draw() {
   });
 
   const size = player1.radius * 2;
+  drawLegend();
 
   ctx.drawImage(
     red_ship_image,
