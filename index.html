@@ -11,6 +11,12 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+const red_ship_image = new Image();
+red_ship_image.src = "assets/sprites/red.png";
+
+const blue_ship_image = new Image();
+blue_ship_image.src = "assets/sprites/blue.png";
+
 let gameOver = false;
 let winnerText = "";
 
@@ -270,15 +276,23 @@ function draw() {
     ctx.fill();
   });
 
-  ctx.fillStyle = player1.color;
-  ctx.beginPath();
-  ctx.arc(player1.x, player1.y, player1.radius, 0, Math.PI * 2);
-  ctx.fill();
+  const size = player1.radius * 2;
 
-  ctx.fillStyle = player2.color;
-  ctx.beginPath();
-  ctx.arc(player2.x, player2.y, player2.radius, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.drawImage(
+    red_ship_image,
+    player1.x - player1.radius,
+    player1.y - player1.radius,
+    size,
+    size
+  );
+
+  ctx.drawImage(
+    blue_ship_image,
+    player2.x - player2.radius,
+    player2.y - player2.radius,
+    size,
+    size
+  );
 
   ctx.fillStyle = "white";
   ctx.fillText("P1 HP: " + player1.hp, 20, 20);
