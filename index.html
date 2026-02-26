@@ -8,6 +8,8 @@
 <canvas id="game"></canvas>
 
 <script>
+// Alcuni commenti potrebbero essere in inglese per abitudine
+// non mi giudichi, crazie
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -32,6 +34,7 @@ background_image.src = "assets/sprites/space.jpeg";
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  const midLine = canvas.width / 2;
 }
 resizeCanvas()
 
@@ -65,24 +68,35 @@ window.addEventListener("keyup", e => {
 const player1 = {
   x: midLine / 2,
   y: canvas.height / 2,
-  radius: 20,
+  radius: 30,
   speed: 4,
   color: "red",
   hp: 100,
-  bulletSpeed: 6
+  bulletSpeed: 6,
+  shootCooldown: 400,
+  lastShot: 0,
+  activeEffects: [],
 };
 
 const player2 = {
   x: midLine + midLine / 2,
   y: canvas.height / 2,
-  radius: 20,
+  radius: 30,
   speed: 4,
   color: "cyan",
   hp: 100,
-  bulletSpeed: 6
+  bulletSpeed: 6,
+  shootCooldown: 400,
+  lastShot: 0,
+  activeEffects: [],
 };
 
 function shoot(player, direction) {
+  const now = Date.now();
+  if (now - player.lastShot < player.shootCooldown) return;
+
+  player.lastShot = now;
+
   bullets.push({
     x: player.x,
     y: player.y,
@@ -109,20 +123,90 @@ class Power {
     }
 
     if (this.type === "damage") {
-      player.hp -= 20;
+      player.hp -= Math.random() * 10 + 10; //numero casuale tra 10 e 20 in teoria
       if (player.hp < 0) player.hp = 0;
     }
 
-    if (this.type === "speed") {
-      player.bulletSpeed += 30;
-      setTimeout(() => {
-        player.bulletSpeed = 6;
-      }, 5000);
-    }
+  if (this.type === "speed") {
+    player.bulletSpeed = 30;
+
+    const effect = {
+      type: "speed",
+      image: this.image,
+      endTime: Date.now() + 5000,
+    };
+
+    player.activeEffects.push(effect);
+
+    setTimeout(() => {
+      player.bulletSpeed = 6;
+      player.activeEffects = player.activeEffects.filter(e => e !== effect);
+    }, 5000);
+  }
   }
 }
 
-// random power spawning
+function drawKeyOverlay() {
+  const keySize = 40;
+  const gap = 10;
+
+  function drawKey(label, x, y, active) {
+    ctx.fillStyle = active ? "lime" : "rgba(255,255,255,0.2)";
+    ctx.fillRect(x, y, keySize, keySize);
+
+    ctx.strokeStyle = "white";
+    ctx.strokeRect(x, y, keySize, keySize);
+
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label.toUpperCase(), x + keySize / 2, y + keySize / 2);
+  }
+
+  const baseX1 = 40;
+  const baseY1 = canvas.height - 120;
+
+  drawKey("w", baseX1 + keySize + gap, baseY1, keys["w"]);
+  drawKey("a", baseX1, baseY1 + keySize + gap, keys["a"]);
+  drawKey("s", baseX1 + keySize + gap, baseY1 + keySize + gap, keys["s"]);
+  drawKey("d", baseX1 + 2*(keySize + gap), baseY1 + keySize + gap, keys["d"]);
+
+  const baseX2 = canvas.width - 160;
+  const baseY2 = canvas.height - 120;
+
+  drawKey("i", baseX2 + keySize + gap, baseY2, keys["i"]);
+  drawKey("j", baseX2, baseY2 + keySize + gap, keys["j"]);
+  drawKey("k", baseX2 + keySize + gap, baseY2 + keySize + gap, keys["k"]);
+  drawKey("l", baseX2 + 2*(keySize + gap), baseY2 + keySize + gap, keys["l"]);
+
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
+}
+
+// random spawn di poteri
+function drawActiveEffects(player) {
+  const iconSize = 30;
+  const spacing = 10;
+
+  player.activeEffects.forEach((effect, index) => {
+    const timeLeft = Math.max(0, effect.endTime - Date.now());
+    const seconds = (timeLeft / 1000).toFixed(1);
+
+    const x = player.x - iconSize / 2;
+    const y = player.y - 60 - index * (iconSize + spacing);
+
+    ctx.drawImage(effect.image, x, y, iconSize, iconSize);
+
+    ctx.fillStyle = "white";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(seconds, player.x, y - 5);
+  });
+
+  ctx.textAlign = "start";
+}
+
 function spawnPower() {
   const side = Math.random() < 0.5 ? 0 : 1;
 
@@ -150,33 +234,43 @@ function spawnPower() {
 }
 
 function drawLegend() {
-  const padding = 40;
-  const iconSize = 40; // dimensione immagine
-  const startX = canvas.width / 2 - (iconSize * 3 + padding * 2) / 2; // centrata
-  const y = 10; // distanza dal top
+  const padding = 100;
+  const iconSize = 40;
+  const y = 10;
 
   const legend = [
     { image: cure_image, text: "+20 HP" },
     { image: bomb_image, text: "-20 HP" },
-    { image: faster_bullet_image, text: "Faster Bullets" }
+    { image: faster_bullet_image, text: "Faster bullets" }
   ];
 
-  //rettangolo trasparente dietro
-  const rectWidth = iconSize * 3 + padding * 2;
-  const rectHeight = iconSize + 24;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(startX - 5, y - 5, rectWidth + iconSize, rectHeight + iconSize);
+  const totalWidth = legend.length * iconSize + (legend.length - 1) * padding;
+  const startX = canvas.width / 2 - totalWidth / 2;
+
+  const textHeight = 20;
+  const rectPadding = 15;
+
+  const rectWidth = (totalWidth + rectPadding * 2)+40;
+  const rectHeight = iconSize + textHeight + rectPadding * 2;
+
+  const rectX = startX - rectPadding-20;
+  const rectY = y - rectPadding;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; // rettangolo trasparente
+  ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
 
   ctx.textAlign = "center";
-  ctx.textBaseline = "top"; // testo sotto l’icona
+  ctx.textBaseline = "top";
   ctx.fillStyle = "white";
-  ctx.font = "16px Arial"; // niente comic sans pekke fa schif
+  ctx.font = "16px Arial";
 
   legend.forEach((item, i) => {
     const x = startX + i * (iconSize + padding);
+
     if (item.image.complete) {
       ctx.drawImage(item.image, x, y, iconSize, iconSize);
     }
+
     ctx.fillText(item.text, x + iconSize / 2, y + iconSize + 4);
   });
 }
@@ -348,6 +442,9 @@ function draw() {
 
   const size = player1.radius * 2;
   drawLegend();
+  drawActiveEffects(player1);
+  drawActiveEffects(player2);
+  drawKeyOverlay();
 
   ctx.drawImage(
     red_ship_image,
