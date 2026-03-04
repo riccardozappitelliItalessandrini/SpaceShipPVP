@@ -31,6 +31,8 @@ faster_bullet_image.src = "assets/sprites/faster_bullet.png"
 const background_image = new Image();
 background_image.src = "assets/sprites/space.jpeg";
 
+const shooting_sound = new Audio("assets/sfx/laser.mp3");
+
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -61,7 +63,14 @@ window.addEventListener("keydown", e => {
 });
 
 window.addEventListener("keyup", e => {
-  keys[e.key.toLowerCase()] = false;
+  k = e.key.toLowerCase();
+  keys[k] = false;
+  if (k == "f") {
+    keys["f_"] = false;
+  }
+  if (k == "ò") {
+    keys["ò_"] = false;
+  }
 });
 
 // Players
@@ -72,6 +81,7 @@ const player1 = {
   speed: 4,
   color: "red",
   hp: 100,
+  maxHp: 100,
   bulletSpeed: 6,
   shootCooldown: 400,
   lastShot: 0,
@@ -85,6 +95,7 @@ const player2 = {
   speed: 4,
   color: "cyan",
   hp: 100,
+  maxHp: 100,
   bulletSpeed: 6,
   shootCooldown: 400,
   lastShot: 0,
@@ -92,6 +103,8 @@ const player2 = {
 };
 
 function shoot(player, direction) {
+  shooting_sound.currentTime = 0;
+  shooting_sound.play();
   const now = Date.now();
   if (now - player.lastShot < player.shootCooldown) return;
 
@@ -146,12 +159,24 @@ class Power {
   }
 }
 
+function drawHealthBar(x, y, width, height, currentHP, maxHP, color) {
+    ctx.fillStyle = "black";
+    ctx.fillRect(x - 2, y - 2, width + 4, height + 4);
+
+    ctx.fillStyle = "transparent";
+    ctx.fillRect(x, y, width, height);
+
+    const healthWidth = (currentHP / maxHP) * width;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, healthWidth, height);
+}
+
 function drawKeyOverlay() {
   const keySize = 40;
   const gap = 10;
 
-  function drawKey(label, x, y, active) {
-    ctx.fillStyle = active ? "lime" : "rgba(255,255,255,0.2)";
+  function drawKey(label, x, y, active, active_color = "lime") {
+    ctx.fillStyle = active ? active_color : "rgba(255,255,255,0.2)";
     ctx.fillRect(x, y, keySize, keySize);
 
     ctx.strokeStyle = "white";
@@ -168,6 +193,7 @@ function drawKeyOverlay() {
   const baseY1 = canvas.height - 120;
 
   drawKey("w", baseX1 + keySize + gap, baseY1, keys["w"]);
+  drawKey("f", baseX1, baseY1, keys["f_"], active_color="red");
   drawKey("a", baseX1, baseY1 + keySize + gap, keys["a"]);
   drawKey("s", baseX1 + keySize + gap, baseY1 + keySize + gap, keys["s"]);
   drawKey("d", baseX1 + 2*(keySize + gap), baseY1 + keySize + gap, keys["d"]);
@@ -176,6 +202,7 @@ function drawKeyOverlay() {
   const baseY2 = canvas.height - 120;
 
   drawKey("i", baseX2 + keySize + gap, baseY2, keys["i"]);
+  drawKey("ò", baseX2 + 2*(keySize + gap), baseY2, keys["ò_"], active_color="blue");
   drawKey("j", baseX2, baseY2 + keySize + gap, keys["j"]);
   drawKey("k", baseX2 + keySize + gap, baseY2 + keySize + gap, keys["k"]);
   drawKey("l", baseX2 + 2*(keySize + gap), baseY2 + keySize + gap, keys["l"]);
@@ -304,6 +331,7 @@ function update() {
     if (keys["f"]) {
         shoot(player1, 6);
         keys["f"] = false;
+        keys["f_"] = true; //questo è per evidenziare
     }
 
     if (keys["i"] || keys["arrowup"]) player2.y -= player2.speed;
@@ -311,10 +339,10 @@ function update() {
     if (keys["j"] || keys["arrowleft"]) player2.x -= player2.speed;
     if (keys["l"] || keys["arrowright"]) player2.x += player2.speed;
 
-    if (keys[","] || keys["delete"]) {
+    if (keys["ò"]) {
         shoot(player2, -6);
-        keys[","] = false;
-        keys["delete"] = false;
+        keys["ò"] = false;
+        keys["ò_"] = true; //questo è per evidenziare
     }
 
     bullets.forEach((b, index) => {
@@ -463,8 +491,24 @@ function draw() {
   );
 
   ctx.fillStyle = "white";
-  ctx.fillText("P1 HP: " + player1.hp, 20, 20);
-  ctx.fillText("P2 HP: " + player2.hp, canvas.width - 120, 20);
+  drawHealthBar(
+    20, 
+    20, 
+    200, 
+    20, 
+    player1.hp, 
+    player1.maxHp, 
+    "red"
+  );
+  drawHealthBar(
+    canvas.width - 220,
+    20,
+    200, 
+    20, 
+    player2.hp, 
+    player2.maxHp, 
+    "blue"
+  );
 
 if (gameOver) {
   ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
