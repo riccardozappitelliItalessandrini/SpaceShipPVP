@@ -283,8 +283,10 @@ function drawLegend() {
   const rectX = startX - rectPadding-20;
   const rectY = y - rectPadding;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; // rettangolo trasparente
-  ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.beginPath();
+  ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 15); // 15 = corner radius
+  ctx.fill();
 
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
