@@ -23,7 +23,7 @@ L’obiettivo è ridurre a zero i punti vita dell’avversario sparando proietti
 
 ### Giocatore 2 (Blu/Ciano)
 - Movimento: **I, J, K, L** (oppure frecce direzionali)
-- Sparo: **Ò**
+- Sparo: **-**
 
 ---
 
